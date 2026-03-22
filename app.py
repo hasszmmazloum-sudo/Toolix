@@ -305,6 +305,11 @@ async def health_check():
 async def ads_txt():
     return FileResponse("ads.txt")
 
+from fastapi.responses import FileResponse
+
+@app.get("/ads.txt")
+async def ads_txt():
+    return FileResponse("ads.txt")
 
 if __name__ == "__main__":
     import uvicorn
