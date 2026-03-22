@@ -6,3 +6,4 @@ pypdf==4.0.1
 aiofiles==23.2.1
 rembg
 onnxruntime
+jinja2
