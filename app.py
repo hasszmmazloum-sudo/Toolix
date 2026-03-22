@@ -140,51 +140,10 @@ async def compress_image(file: UploadFile = File(...)):
 # Remove background
 @app.post("/api/remove-bg")
 async def remove_background(file: UploadFile = File(...)):
-    try:
-        logger.info(f"Processing background removal for: {file.filename}")
-
-        if file.content_type not in ALLOWED_IMAGE_TYPES:
-            raise HTTPException(status_code=400, detail="Please upload JPG or PNG image")
-
-        content = await file.read()
-
-        if len(content) > MAX_FILE_SIZE:
-            raise HTTPException(status_code=400, detail="Image too large. Please upload a smaller image.")
-
-        # lazy import to reduce startup load on Render
-        from rembg import remove
-
-        # resize before processing to reduce memory usage
-        image = Image.open(io.BytesIO(content))
-        image.thumbnail((1000, 1000))
-
-        temp_buffer = io.BytesIO()
-        image.save(temp_buffer, format="PNG")
-        resized_data = temp_buffer.getvalue()
-
-        output_data = remove(resized_data)
-
-        output_filename = f"nobg_{uuid.uuid4().hex}.png"
-        output_path = os.path.join("outputs", output_filename)
-
-        with open(output_path, "wb") as f:
-            f.write(output_data)
-
-        if not os.path.exists(output_path):
-            raise HTTPException(status_code=500, detail="Failed to create output file")
-
-        cleanup_file(output_path, 60)
-
-        original_name = Path(file.filename).stem
-        return FileResponse(
-            path=output_path,
-            media_type="image/png",
-            filename=f"nobg_{original_name}.png"
-        )
-
-    except Exception as e:
-        logger.error(f"Background removal error: {traceback.format_exc()}")
-        raise HTTPException(status_code=500, detail=f"Background removal failed: {str(e)}")
+    raise HTTPException(
+        status_code=503,
+        detail="خارج الخدمة حاليا"
+    )
 
 
 # Image to PDF
