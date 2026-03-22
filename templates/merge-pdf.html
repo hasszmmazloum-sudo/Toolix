@@ -1,0 +1,213 @@
+{% extends "base.html" %}
+
+{% block title %}Merge PDF - Toolix{% endblock %}
+
+{% block content %}
+<div class="tool-container">
+    <div class="tool-header">
+        <h1>Merge PDF Files</h1>
+        <p>Combine multiple PDF files into one document.</p>
+    </div>
+
+    <div class="upload-area" id="uploadArea">
+        <div class="upload-content">
+            <div class="upload-icon">📁</div>
+            <p>Drag & drop PDF files here or click to browse</p>
+            <p class="upload-hint">Supports PDF (Max 20 files, 10MB each)</p>
+            <input type="file" id="fileInput" accept="application/pdf" multiple hidden>
+            <button class="upload-btn" onclick="document.getElementById('fileInput').click()">Choose Files</button>
+        </div>
+    </div>
+
+    <div class="selected-files" id="selectedFiles" style="display: none;">
+        <h3>Selected Files:</h3>
+        <ul id="fileList"></ul>
+    </div>
+
+    <div class="loading-indicator" style="display: none;" id="loading">
+        <div class="spinner"></div>
+        <p>Merging PDF files...</p>
+        <div class="progress-bar-container" style="margin-top: 1rem;">
+            <div class="progress-bar" id="progressBar" style="width: 0%; height: 4px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 2px; transition: width 0.3s;"></div>
+        </div>
+    </div>
+
+    <div class="result-container" style="display: none;" id="result">
+        <div class="preview-section">
+            <h3>Merge Complete!</h3>
+            <div class="file-info" id="fileInfo"></div>
+        </div>
+        <div class="download-section">
+            <a href="#" class="download-btn" id="downloadBtn">Download Merged PDF</a>
+            <button class="new-file-btn" onclick="resetForm()">Merge More Files</button>
+        </div>
+        
+        <div class="ad-banner result-ad">
+            <div class="ad-content">
+                <span class="ad-label">Advertisement</span>
+                <div class="ad-space">Your Ad Here</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="error-message" style="display: none;" id="error"></div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let selectedFiles = [];
+let progressInterval = null;
+
+document.getElementById('fileInput').addEventListener('change', handleFileSelect);
+document.getElementById('uploadArea').addEventListener('dragover', (e) => {
+    e.preventDefault();
+    document.getElementById('uploadArea').classList.add('dragover');
+});
+document.getElementById('uploadArea').addEventListener('dragleave', () => {
+    document.getElementById('uploadArea').classList.remove('dragover');
+});
+document.getElementById('uploadArea').addEventListener('drop', (e) => {
+    e.preventDefault();
+    document.getElementById('uploadArea').classList.remove('dragover');
+    const files = Array.from(e.dataTransfer.files);
+    if (files.length > 0) handleFiles(files);
+});
+
+function handleFileSelect(e) {
+    const files = Array.from(e.target.files);
+    if (files.length > 0) handleFiles(files);
+}
+
+function handleFiles(files) {
+    // Filter only PDF files
+    selectedFiles = files.filter(file => file.type === 'application/pdf');
+    
+    if (selectedFiles.length === 0) {
+        showError('Please select valid PDF files');
+        return;
+    }
+    
+    if (selectedFiles.length < 2) {
+        showError('Please select at least 2 PDF files to merge');
+        return;
+    }
+    
+    if (selectedFiles.length > 20) {
+        showError('Maximum 20 PDF files allowed');
+        return;
+    }
+    
+    // Check file sizes
+    let hasError = false;
+    for (let file of selectedFiles) {
+        if (file.size > 10 * 1024 * 1024) {
+            showError(`File "${file.name}" exceeds 10MB limit`);
+            hasError = true;
+            break;
+        }
+        if (file.size === 0) {
+            showError(`File "${file.name}" is empty`);
+            hasError = true;
+            break;
+        }
+    }
+    
+    if (hasError) return;
+    
+    // Display selected files
+    const fileList = document.getElementById('fileList');
+    fileList.innerHTML = '';
+    selectedFiles.forEach(file => {
+        const li = document.createElement('li');
+        li.textContent = `${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`;
+        fileList.appendChild(li);
+    });
+    
+    document.getElementById('selectedFiles').style.display = 'block';
+    document.querySelector('.upload-area').style.display = 'none';
+    document.getElementById('error').style.display = 'none';
+    
+    mergePDFs();
+}
+
+async function mergePDFs() {
+    const formData = new FormData();
+    selectedFiles.forEach(file => {
+        formData.append('files', file);
+    });
+    
+    document.getElementById('loading').style.display = 'block';
+    document.getElementById('result').style.display = 'none';
+    
+    // Simulate progress
+    let progress = 0;
+    progressInterval = setInterval(() => {
+        if (progress < 90) {
+            progress += 10;
+            document.getElementById('progressBar').style.width = progress + '%';
+        }
+    }, 200);
+    
+    try {
+        const response = await fetch('/api/merge-pdf', {
+            method: 'POST',
+            body: formData
+        });
+        
+        clearInterval(progressInterval);
+        
+        if (!response.ok) {
+            let errorMessage = '';
+            try {
+                const errorData = await response.json();
+                errorMessage = errorData.detail || 'Merge failed';
+            } catch (e) {
+                const errorText = await response.text();
+                errorMessage = errorText || `Server error: ${response.status}`;
+            }
+            throw new Error(errorMessage);
+        }
+        
+        document.getElementById('progressBar').style.width = '100%';
+        
+        const blob = await response.blob();
+        const url = URL.createObjectURL(blob);
+        
+        document.getElementById('downloadBtn').href = url;
+        document.getElementById('downloadBtn').download = 'merged_files.pdf';
+        
+        document.getElementById('fileInfo').innerHTML = `
+            <p><strong>Number of Files:</strong> ${selectedFiles.length}</p>
+            <p><strong>Merged PDF Size:</strong> ${(blob.size / 1024 / 1024).toFixed(2)} MB</p>
+            <p><strong>Status:</strong> ✓ Ready to download</p>
+        `;
+        
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('result').style.display = 'block';
+        
+    } catch (error) {
+        clearInterval(progressInterval);
+        console.error('Merge error:', error);
+        showError(error.message || 'An error occurred while merging PDFs');
+        document.getElementById('loading').style.display = 'none';
+        document.querySelector('.upload-area').style.display = 'block';
+        document.getElementById('selectedFiles').style.display = 'none';
+        document.getElementById('result').style.display = 'none';
+    }
+}
+
+function showError(message) {
+    const errorDiv = document.getElementById('error');
+    errorDiv.textContent = message;
+    errorDiv.style.display = 'block';
+    setTimeout(() => {
+        errorDiv.style.display = 'none';
+    }, 8000);
+}
+
+function resetForm() {
+    location.reload();
+}
+</script>
+{% endblock %}

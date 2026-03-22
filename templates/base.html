@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Toolix - All-in-One Online Tools{% endblock %}</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Top Banner Ad -->
+    <div class="ad-banner top-ad">
+        <div class="ad-content">
+            <span class="ad-label">Advertisement</span>
+            <div class="ad-space">Your Ad Here - Contact us for advertising opportunities</div>
+        </div>
+    </div>
+
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="logo">
+                <a href="/">Toolix</a>
+                <span class="tagline">All Tools You Need in One Place</span>
+            </div>
+            <div class="nav-links">
+                <a href="/compress">Compress Image</a>
+                <a href="/remove-bg">Remove Background</a>
+                <a href="/image-to-pdf">Image to PDF</a>
+                <a href="/merge-pdf">Merge PDF</a>
+            </div>
+            <div class="mobile-menu-btn">☰</div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-content">
+            <p>&copy; 2024 Toolix - All-in-One Online Tools. All rights reserved.</p>
+            <p class="footer-links">
+                <a href="/">Home</a> |
+                <a href="#">Privacy Policy</a> |
+                <a href="#">Terms of Service</a>
+            </p>
+        </div>
+    </footer>
+
+    <script src="/static/js/main.js"></script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

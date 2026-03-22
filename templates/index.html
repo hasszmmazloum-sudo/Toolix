@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+
+{% block title %}Toolix - All Tools You Need in One Place{% endblock %}
+
+{% block content %}
+<div class="hero-section">
+    <h1 class="hero-title">All Tools You Need in One Place</h1>
+    <p class="hero-subtitle">Professional image and PDF tools - fast, free, and easy to use</p>
+</div>
+
+<div class="tools-grid">
+    <div class="tool-card" data-tool="compress">
+        <div class="tool-icon">🖼️</div>
+        <h3>Image Compression</h3>
+        <p>Reduce image size without losing quality. Compress JPG and PNG images instantly.</p>
+        <a href="/compress" class="tool-btn">Try Now →</a>
+    </div>
+
+    <div class="tool-card" data-tool="remove-bg">
+        <div class="tool-icon">✨</div>
+        <h3>Background Removal</h3>
+        <p>Remove background from images automatically. Get transparent PNG in seconds.</p>
+        <a href="/remove-bg" class="tool-btn">Try Now →</a>
+    </div>
+
+    <div class="tool-card" data-tool="image-to-pdf">
+        <div class="tool-icon">📄</div>
+        <h3>Image to PDF</h3>
+        <p>Convert JPG, PNG images to PDF. Combine multiple images into one document.</p>
+        <a href="/image-to-pdf" class="tool-btn">Try Now →</a>
+    </div>
+
+    <div class="tool-card" data-tool="merge-pdf">
+        <div class="tool-icon">🔗</div>
+        <h3>Merge PDF</h3>
+        <p>Combine multiple PDF files into one. Easy and fast PDF merging tool.</p>
+        <a href="/merge-pdf" class="tool-btn">Try Now →</a>
+    </div>
+</div>
+
+<!-- In-Content Ad -->
+<div class="ad-banner content-ad">
+    <div class="ad-content">
+        <span class="ad-label">Advertisement</span>
+        <div class="ad-space">Your Ad Here - Reach our growing user base</div>
+    </div>
+</div>
+
+<div class="features-section">
+    <h2>Why Choose Toolix?</h2>
+    <div class="features-grid">
+        <div class="feature">
+            <div class="feature-icon">⚡</div>
+            <h4>Fast Processing</h4>
+            <p>Lightning-fast file processing with optimized algorithms</p>
+        </div>
+        <div class="feature">
+            <div class="feature-icon">🔒</div>
+            <h4>Secure & Private</h4>
+            <p>Files are automatically deleted after processing</p>
+        </div>
+        <div class="feature">
+            <div class="feature-icon">📱</div>
+            <h4>Mobile Friendly</h4>
+            <p>Fully responsive design works on all devices</p>
+        </div>
+        <div class="feature">
+            <div class="feature-icon">🎯</div>
+            <h4>Easy to Use</h4>
+            <p>Simple interface with drag & drop support</p>
+        </div>
+    </div>
+</div>
+{% endblock %}

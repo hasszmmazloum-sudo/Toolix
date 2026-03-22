@@ -1,0 +1,176 @@
+{% extends "base.html" %}
+
+{% block title %}Remove Background - Toolix{% endblock %}
+
+{% block content %}
+<div class="tool-container">
+    <div class="tool-header">
+        <h1>Remove Background</h1>
+        <p>Automatically remove background from images. Get transparent PNG instantly.</p>
+    </div>
+
+    <div class="upload-area" id="uploadArea">
+        <div class="upload-content">
+            <div class="upload-icon">🖼️</div>
+            <p>Drag & drop your image here or click to browse</p>
+            <p class="upload-hint">Supports JPG, PNG (Max 10MB)</p>
+            <input type="file" id="fileInput" accept="image/jpeg,image/png,image/jpg" hidden>
+            <button class="upload-btn" onclick="document.getElementById('fileInput').click()">Choose File</button>
+        </div>
+    </div>
+
+    <div class="loading-indicator" style="display: none;" id="loading">
+        <div class="spinner"></div>
+        <p>Removing background... This may take a few seconds on first use.</p>
+        <div class="progress-bar-container" style="margin-top: 1rem;">
+            <div class="progress-bar" id="progressBar" style="width: 0%; height: 4px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 2px; transition: width 0.3s;"></div>
+        </div>
+    </div>
+
+    <div class="result-container" style="display: none;" id="result">
+        <div class="preview-section">
+            <h3>Background Removed Successfully!</h3>
+            <div class="image-preview">
+                <img id="previewImage" alt="Processed image">
+            </div>
+            <div class="file-info" id="fileInfo"></div>
+        </div>
+        <div class="download-section">
+            <a href="#" class="download-btn" id="downloadBtn">Download PNG with Transparent Background</a>
+            <button class="new-file-btn" onclick="resetForm()">Process Another Image</button>
+        </div>
+        
+        <div class="ad-banner result-ad">
+            <div class="ad-content">
+                <span class="ad-label">Advertisement</span>
+                <div class="ad-space">Your Ad Here</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="error-message" style="display: none;" id="error"></div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let selectedFile = null;
+let progressInterval = null;
+
+document.getElementById('fileInput').addEventListener('change', handleFileSelect);
+document.getElementById('uploadArea').addEventListener('dragover', (e) => {
+    e.preventDefault();
+    document.getElementById('uploadArea').classList.add('dragover');
+});
+document.getElementById('uploadArea').addEventListener('dragleave', () => {
+    document.getElementById('uploadArea').classList.remove('dragover');
+});
+document.getElementById('uploadArea').addEventListener('drop', (e) => {
+    e.preventDefault();
+    document.getElementById('uploadArea').classList.remove('dragover');
+    const files = e.dataTransfer.files;
+    if (files.length > 0) handleFile(files[0]);
+});
+
+function handleFileSelect(e) {
+    const file = e.target.files[0];
+    if (file) handleFile(file);
+}
+
+function handleFile(file) {
+    if (!file.type.match('image.*')) {
+        showError('Please select a valid image file (JPG or PNG)');
+        return;
+    }
+    
+    if (file.size > 10 * 1024 * 1024) {
+        showError('File size must be less than 10MB');
+        return;
+    }
+    
+    selectedFile = file;
+    processImage();
+}
+
+async function processImage() {
+    const formData = new FormData();
+    formData.append('file', selectedFile);
+    
+    document.getElementById('loading').style.display = 'block';
+    document.querySelector('.upload-area').style.display = 'none';
+    document.getElementById('result').style.display = 'none';
+    document.getElementById('error').style.display = 'none';
+    
+    // Simulate progress
+    let progress = 0;
+    progressInterval = setInterval(() => {
+        if (progress < 90) {
+            progress += 10;
+            document.getElementById('progressBar').style.width = progress + '%';
+        }
+    }, 300);
+    
+    try {
+        const response = await fetch('/api/remove-bg', {
+            method: 'POST',
+            body: formData
+        });
+        
+        clearInterval(progressInterval);
+        
+        if (!response.ok) {
+            // Try to parse error as JSON, if fails, use status text
+            let errorMessage = '';
+            try {
+                const errorData = await response.json();
+                errorMessage = errorData.detail || 'Background removal failed';
+            } catch (e) {
+                // If response is not JSON, get text
+                const errorText = await response.text();
+                errorMessage = errorText || `Server error: ${response.status}`;
+            }
+            throw new Error(errorMessage);
+        }
+        
+        document.getElementById('progressBar').style.width = '100%';
+        
+        const blob = await response.blob();
+        const url = URL.createObjectURL(blob);
+        
+        document.getElementById('previewImage').src = url;
+        document.getElementById('downloadBtn').href = url;
+        document.getElementById('downloadBtn').download = `nobg_${selectedFile.name.split('.')[0]}.png`;
+        
+        document.getElementById('fileInfo').innerHTML = `
+            <p><strong>Original Size:</strong> ${(selectedFile.size / 1024 / 1024).toFixed(2)} MB</p>
+            <p><strong>Processed Size:</strong> ${(blob.size / 1024 / 1024).toFixed(2)} MB</p>
+            <p><strong>Format:</strong> PNG (Transparent)</p>
+        `;
+        
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('result').style.display = 'block';
+        
+    } catch (error) {
+        clearInterval(progressInterval);
+        console.error('Error details:', error);
+        showError(error.message || 'An error occurred while processing your image. Please try again.');
+        document.getElementById('loading').style.display = 'none';
+        document.querySelector('.upload-area').style.display = 'block';
+        document.getElementById('result').style.display = 'none';
+    }
+}
+
+function showError(message) {
+    const errorDiv = document.getElementById('error');
+    errorDiv.textContent = message;
+    errorDiv.style.display = 'block';
+    setTimeout(() => {
+        errorDiv.style.display = 'none';
+    }, 5000);
+}
+
+function resetForm() {
+    location.reload();
+}
+</script>
+{% endblock %}

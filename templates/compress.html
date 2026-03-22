@@ -1,0 +1,187 @@
+{% extends "base.html" %}
+
+{% block title %}Compress Image - Toolix{% endblock %}
+
+{% block content %}
+<div class="tool-container">
+    <div class="tool-header">
+        <h1>Compress Image</h1>
+        <p>Reduce image file size while maintaining quality. Supports JPG and PNG formats.</p>
+    </div>
+
+    <div class="upload-area" id="uploadArea">
+        <div class="upload-content">
+            <div class="upload-icon">📁</div>
+            <p>Drag & drop your image here or click to browse</p>
+            <p class="upload-hint">Supports JPG, PNG (Max 10MB)</p>
+            <input type="file" id="fileInput" accept="image/jpeg,image/png,image/jpg" hidden>
+            <button class="upload-btn" onclick="document.getElementById('fileInput').click()">Choose File</button>
+        </div>
+    </div>
+
+    <div class="loading-indicator" style="display: none;" id="loading">
+        <div class="spinner"></div>
+        <p>Compressing your image...</p>
+        <div class="progress-bar-container" style="margin-top: 1rem;">
+            <div class="progress-bar" id="progressBar" style="width: 0%; height: 4px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 2px; transition: width 0.3s;"></div>
+        </div>
+    </div>
+
+    <div class="result-container" style="display: none;" id="result">
+        <div class="preview-section">
+            <h3>Compression Complete!</h3>
+            <div class="image-preview">
+                <img id="previewImage" alt="Compressed preview">
+            </div>
+            <div class="file-info" id="fileInfo"></div>
+        </div>
+        <div class="download-section">
+            <a href="#" class="download-btn" id="downloadBtn">Download Compressed Image</a>
+            <button class="new-file-btn" onclick="resetForm()">Compress Another File</button>
+        </div>
+        
+        <!-- After Result Ad -->
+        <div class="ad-banner result-ad">
+            <div class="ad-content">
+                <span class="ad-label">Advertisement</span>
+                <div class="ad-space">Promote your business here</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="error-message" style="display: none;" id="error"></div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let selectedFile = null;
+let progressInterval = null;
+
+document.getElementById('fileInput').addEventListener('change', handleFileSelect);
+document.getElementById('uploadArea').addEventListener('dragover', (e) => {
+    e.preventDefault();
+    document.getElementById('uploadArea').classList.add('dragover');
+});
+document.getElementById('uploadArea').addEventListener('dragleave', () => {
+    document.getElementById('uploadArea').classList.remove('dragover');
+});
+document.getElementById('uploadArea').addEventListener('drop', (e) => {
+    e.preventDefault();
+    document.getElementById('uploadArea').classList.remove('dragover');
+    const files = e.dataTransfer.files;
+    if (files.length > 0) handleFile(files[0]);
+});
+
+function handleFileSelect(e) {
+    const file = e.target.files[0];
+    if (file) handleFile(file);
+}
+
+function handleFile(file) {
+    if (!file.type.match('image.*')) {
+        showError('Please select a valid image file (JPG or PNG)');
+        return;
+    }
+    
+    if (file.size > 10 * 1024 * 1024) {
+        showError('File size must be less than 10MB');
+        return;
+    }
+    
+    selectedFile = file;
+    
+    // Show preview before compression
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        document.getElementById('previewImage').src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+    
+    // Show file info
+    document.getElementById('fileInfo').innerHTML = `
+        <p><strong>Original Size:</strong> ${(file.size / 1024 / 1024).toFixed(2)} MB</p>
+        <p><strong>Format:</strong> ${file.type}</p>
+        <p><strong>Name:</strong> ${file.name}</p>
+    `;
+    
+    compressImage();
+}
+
+async function compressImage() {
+    const formData = new FormData();
+    formData.append('file', selectedFile);
+    
+    document.getElementById('loading').style.display = 'block';
+    document.querySelector('.upload-area').style.display = 'none';
+    document.getElementById('result').style.display = 'none';
+    
+    // Simulate progress
+    let progress = 0;
+    progressInterval = setInterval(() => {
+        if (progress < 90) {
+            progress += 10;
+            document.getElementById('progressBar').style.width = progress + '%';
+        }
+    }, 200);
+    
+    try {
+        const response = await fetch('/compress-image', {
+            method: 'POST',
+            body: formData
+        });
+        
+        clearInterval(progressInterval);
+        document.getElementById('progressBar').style.width = '100%';
+        
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.detail || 'Compression failed');
+        }
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            // Update file info with compression details
+            document.getElementById('fileInfo').innerHTML = `
+                <p><strong>Original Size:</strong> ${data.original_size_mb} MB</p>
+                <p><strong>Compressed Size:</strong> ${data.compressed_size_mb} MB</p>
+                <p><strong>Compression Ratio:</strong> ${data.compression_ratio}% reduction</p>
+                <p><strong>Format:</strong> JPEG</p>
+            `;
+            
+            // Set download link
+            document.getElementById('downloadBtn').href = data.download_url;
+            document.getElementById('downloadBtn').download = data.filename;
+            
+            setTimeout(() => {
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('result').style.display = 'block';
+            }, 500);
+        } else {
+            throw new Error('Compression failed');
+        }
+        
+    } catch (error) {
+        clearInterval(progressInterval);
+        showError(error.message);
+        document.getElementById('loading').style.display = 'none';
+        document.querySelector('.upload-area').style.display = 'block';
+        document.getElementById('result').style.display = 'none';
+    }
+}
+
+function showError(message) {
+    const errorDiv = document.getElementById('error');
+    errorDiv.textContent = message;
+    errorDiv.style.display = 'block';
+    setTimeout(() => {
+        errorDiv.style.display = 'none';
+    }, 5000);
+}
+
+function resetForm() {
+    location.reload();
+}
+</script>
+{% endblock %}
