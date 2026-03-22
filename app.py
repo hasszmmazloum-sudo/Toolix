@@ -10,7 +10,6 @@ from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from PIL import Image
-from rembg import remove
 import aiofiles
 import asyncio
 
@@ -34,7 +33,7 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
 
 # Configuration
-MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB
+MAX_FILE_SIZE = 5 * 1024 * 1024
 ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/jpg"]
 ALLOWED_PDF_TYPES = ["application/pdf"]
 
@@ -66,9 +65,44 @@ async def home(request: Request):
 async def compress_page(request: Request):
     return templates.TemplateResponse("compress.html", {"request": request})
 
-@app.get("/remove-bg", response_class=HTMLResponse)
-async def remove_bg_page(request: Request):
-    return templates.TemplateResponse("remove-bg.html", {"request": request})
+@app.post("/api/remove-bg")
+async def remove_background(file: UploadFile = File(...)):
+    try:
+         from PIL import Image
+import io
+
+@app.post("/api/remove-bg")
+async def remove_background(file: UploadFile = File(...)):
+    try:
+        from rembg import remove
+
+        content = await file.read()
+
+        image = Image.open(io.BytesIO(content))
+        image.thumbnail((1000, 1000))
+
+        temp_buffer = io.BytesIO()
+        image.save(temp_buffer, format="PNG")
+        resized_data = temp_buffer.getvalue()
+
+        output_data = remove(resized_data)
+
+        output_filename = f"nobg_{uuid.uuid4().hex}.png"
+        output_path = os.path.join("outputs", output_filename)
+
+        with open(output_path, "wb") as f:
+            f.write(output_data)
+
+        return FileResponse(
+            output_path,
+            media_type="image/png",
+            filename="removed-background.png"
+        )
+
+    except Exception as e:
+        logger.error(traceback.format_exc())
+        raise HTTPException(status_code=500, detail=str(e))
+        ...
 
 @app.get("/image-to-pdf", response_class=HTMLResponse)
 async def image_to_pdf_page(request: Request):
@@ -88,8 +122,8 @@ async def compress_image(file: UploadFile = File(...)):
         content = await file.read()
         
         # Check file size
-        if len(content) > MAX_FILE_SIZE:
-            raise HTTPException(status_code=400, detail=f"File size exceeds {MAX_FILE_SIZE // 1024 // 1024}MB limit")
+        if len(content) > 5 * 1024 * 1024:
+    raise HTTPException(status_code=400, detail="Image too large. Please upload a smaller image.")
         
         # Save input
         input_path = os.path.join("uploads", get_unique_filename(file.filename))
